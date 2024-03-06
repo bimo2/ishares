@@ -1,0 +1,17 @@
+// https://json5.dev
+_x: 0,
+project: 'ishares',
+require: [
+  'sbt',
+  'scala'
+],
+scripts: {
+  run: {
+    info: 'run ishares script',
+    run: 'sbt run'
+  },
+  clean: {
+    info: 'delete untracked files',
+    run: 'git clean -dfxi -e .env'
+  }
+}
