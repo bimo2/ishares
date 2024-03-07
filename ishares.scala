@@ -118,8 +118,21 @@ def historicalSQL(sheet: Sheet, etf: String): String = {
   s"INSERT INTO quotes (etf_id, date, nav_per_share, shares)\nVALUES${data.mkString(",")};"
 }
 
-def distributionsSQL(sheet: Sheet): String = {
-  "TODO"
+def distributionsSQL(sheet: Sheet, etf: String): String = {
+  val xlsxDate = new SimpleDateFormat("MMM dd, yyyy")
+  val sqlDate = new SimpleDateFormat("yyyy-MM-dd")
+  val rows = sheet.iterator().asScala.drop(1)
+
+  val data = rows.map { row =>
+    val recordDate = sqlDate.format(xlsxDate.parse(row.getCell(0).getStringCellValue()))
+    val exDate = sqlDate.format(xlsxDate.parse(row.getCell(1).getStringCellValue()))
+    val payableDate = sqlDate.format(xlsxDate.parse(row.getCell(2).getStringCellValue()))
+    val value = BigDecimal(row.getCell(3).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+
+    s"\n  ('$etf', '$recordDate', '$exDate', '$payableDate', $value)"
+  }
+
+  s"INSERT INTO dividends (etf_id, record_date, ex_date, payable_date, value)\nVALUES${data.mkString(",")};"
 }
 
 def sql(file: File): Unit = {
@@ -133,7 +146,7 @@ def sql(file: File): Unit = {
     val sql = sheet.getSheetName match {
       case "Holdings" => holdingsSQL(sheet)
       case "Historical" => historicalSQL(sheet, "ETF")
-      case "Distributions" => distributionsSQL(sheet)
+      case "Distributions" => distributionsSQL(sheet, "ETF")
       case _ => s"TODO"
     }
 
