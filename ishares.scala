@@ -1,5 +1,5 @@
 import java.io.File
-import java.io.PrintWriter
+import java.io.FileWriter
 import java.sql.Date
 import java.text.SimpleDateFormat
 import org.apache.poi.ss.usermodel.Sheet
@@ -138,6 +138,7 @@ def distributionsSQL(sheet: Sheet, etf: String): String = {
 def sql(file: File): Unit = {
   println(s"sql <- ${file.getName}")
 
+  val path = s"${file.getName.stripSuffix(".xlsx")}.sql"
   val workbook = WorkbookFactory.create(file)
 
   for (index <- 0 until workbook.getNumberOfSheets) {
@@ -150,31 +151,30 @@ def sql(file: File): Unit = {
       case _ => s"TODO"
     }
 
-    write(s"sql/${sheet.getSheetName}.sql", sql)
+    sqlout(path, sql)
   }
 
   workbook.close()
 }
 
-def write(path: String, content: String): Unit = {
-  val file = new File(path)
+def sqlout(path: String, statement: String): Unit = {
+  val file = new File(s"sql/$path")
   val directory = file.getParentFile
 
-  if (!directory.exists()) directory.mkdirs()
+  if (!directory.exists) directory.mkdirs()
+  if (!file.exists) file.createNewFile()
 
-  file.createNewFile()
-
-  val writer = new PrintWriter(file)
+  val writer = new FileWriter(file, true)
 
   try {
-    writer.println(content)
+    writer.write(statement)
   } finally {
     writer.close()
   }
 }
 
 @main def script(args: String*): Unit = {
-  write("sql/schema.sql", schemaSQL)
+  sqlout("schema.sql", schemaSQL)
 
   val path = new File("xlsx")
 

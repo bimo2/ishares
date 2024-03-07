@@ -8,7 +8,7 @@ require: [
 scripts: {
   run: {
     info: 'run ishares script',
-    run: 'sbt run'
+    run: 'rm -rf sql && sbt run'
   },
   clean: {
     info: 'delete untracked files',
