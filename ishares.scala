@@ -64,7 +64,42 @@ FLUSH PRIVILEGES;
 """.stripMargin.trim
 
 def holdingsSQL(sheet: Sheet): String = {
-  "TODO"
+  val xlsxDate = new SimpleDateFormat("dd-MMM-yyyy")
+  val sqlDate = new SimpleDateFormat("yyyy-MM-dd")
+  val date = sqlDate.format(xlsxDate.parse(sheet.getRow(0).getCell(0).getStringCellValue()))
+  val etfName = sheet.getRow(1).getCell(0).getStringCellValue()
+
+  // TODO: return ETF data
+  println(s"$etfName ($date)")
+
+  val etfSQL = s"INSERT INTO etfs (id, issuer, name, report_date)\nVALUES\n  ('ETF', 'BlackRock, Inc.', '$etfName', '$date');"
+  val assets = new StringBuilder
+  val holdings = new StringBuilder
+
+  for (index <- 8 to sheet.getLastRowNum) {
+    val row = sheet.getRow(index)
+    val ticker = row.getCell(0).getStringCellValue()
+    val name = row.getCell(1).getStringCellValue()
+    val sector = row.getCell(2).getStringCellValue()
+    val assetClass = row.getCell(3).getStringCellValue()
+    val marketValue = BigDecimal(row.getCell(4).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+    val weight = BigDecimal(row.getCell(5).getNumericCellValue()).setScale(4, BigDecimal.RoundingMode.HALF_UP)
+    val notionalValue = BigDecimal(row.getCell(6).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+    val shares = BigDecimal(row.getCell(7).getNumericCellValue()).setScale(4, BigDecimal.RoundingMode.HALF_UP)
+    val location = row.getCell(9).getStringCellValue()
+    val exchange = row.getCell(10).getStringCellValue()
+
+    assets.append(s"\n  ('$ticker', '$name', '$sector', '$assetClass', '$location', '$exchange'),")
+    holdings.append(s"\n  ('ETF', '$ticker', $marketValue, $weight, $notionalValue, $shares),")
+  }
+
+  assets.update(assets.length - 1, ';')
+  holdings.update(holdings.length - 1, ';');
+
+  val assetsSQL = s"\n\nINSERT INTO assets (id, name, sector, class, location, exchange)\nVALUES${assets.toString()}"
+  val holdingsSQL = s"\n\nINSERT INTO holdings (etf_id, asset_id, market_value, weight, notional_value, shares)\nVALUES${holdings.toString()}"
+
+  etfSQL + assetsSQL + holdingsSQL
 }
 
 def historicalSQL(sheet: Sheet, etf: String): String = {
@@ -75,7 +110,7 @@ def historicalSQL(sheet: Sheet, etf: String): String = {
   val data = rows.map { row =>
     val date = sqlDate.format(xlsxDate.parse(row.getCell(0).getStringCellValue()))
     val value = BigDecimal(row.getCell(1).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
-    val shares = BigDecimal(row.getCell(3).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+    val shares = BigDecimal(row.getCell(3).getNumericCellValue()).setScale(4, BigDecimal.RoundingMode.HALF_UP)
 
     s"\n  ('$etf', '$date', $value, $shares)"
   }
