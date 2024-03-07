@@ -1,5 +1,10 @@
-import java.io.{File, PrintWriter}
-import org.apache.poi.ss.usermodel.{Sheet, WorkbookFactory}
+import java.io.File
+import java.io.PrintWriter
+import java.sql.Date
+import java.text.SimpleDateFormat
+import org.apache.poi.ss.usermodel.Sheet
+import org.apache.poi.ss.usermodel.WorkbookFactory
+import scala.jdk.CollectionConverters._
 
 val schemaSQL = """
 DROP USER IF EXISTS device;
@@ -58,32 +63,46 @@ GRANT ALL PRIVILEGES ON ishares.* TO 'device'@'%';
 FLUSH PRIVILEGES;
 """.stripMargin.trim
 
-def holdingsSQL(sheet: Sheet): Unit = {
-  println(s"parse holdings")
+def holdingsSQL(sheet: Sheet): String = {
+  "TODO"
 }
 
-def historicalSQL(sheet: Sheet): Unit = {
-  println(s"parse historical")
+def historicalSQL(sheet: Sheet, etf: String): String = {
+  val xlsxDate = new SimpleDateFormat("MMM dd, yyyy")
+  val sqlDate = new SimpleDateFormat("yyyy-MM-dd")
+  val rows = sheet.iterator().asScala.drop(1)
+
+  val data = rows.map { row =>
+    val date = sqlDate.format(xlsxDate.parse(row.getCell(0).getStringCellValue()))
+    val value = BigDecimal(row.getCell(1).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+    val shares = BigDecimal(row.getCell(3).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+
+    s"\n  ('$etf', '$date', $value, $shares)"
+  }
+
+  s"INSERT INTO quotes (etf_id, date, nav_per_share, shares)\nVALUES${data.mkString(",")};"
 }
 
-def distributionsSQL(sheet: Sheet): Unit = {
-  println(s"parse distributions")
+def distributionsSQL(sheet: Sheet): String = {
+  "TODO"
 }
 
-def sql(xlsx: File): Unit = {
-  println(s"generate sql from: ${xlsx.getName}")
+def sql(file: File): Unit = {
+  println(s"sql <- ${file.getName}")
 
-  val workbook = WorkbookFactory.create(xlsx)
+  val workbook = WorkbookFactory.create(file)
 
   for (index <- 0 until workbook.getNumberOfSheets) {
     val sheet = workbook.getSheetAt(index)
 
-    sheet.getSheetName match {
+    val sql = sheet.getSheetName match {
       case "Holdings" => holdingsSQL(sheet)
-      case "Historical" => historicalSQL(sheet)
+      case "Historical" => historicalSQL(sheet, "ETF")
       case "Distributions" => distributionsSQL(sheet)
-      case _ => // do nothing
+      case _ => s"TODO"
     }
+
+    write(s"sql/${sheet.getSheetName}.sql", sql)
   }
 
   workbook.close()
@@ -109,11 +128,11 @@ def write(path: String, content: String): Unit = {
 @main def script(args: String*): Unit = {
   write("sql/schema.sql", schemaSQL)
 
-  val xlsxPath = new File("xlsx")
+  val path = new File("xlsx")
 
-  if (!xlsxPath.isDirectory) return
+  if (!path.isDirectory) return
 
-  val files = xlsxPath.listFiles.filter(_.isFile)
+  val files = path.listFiles.filter(_.isFile)
 
   files.foreach(sql)
 }
