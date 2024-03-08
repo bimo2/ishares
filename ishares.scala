@@ -82,12 +82,24 @@ def column(sheet: Sheet, head: Int, name: String): Option[Int] = {
   None
 }
 
+def sqlnull(value: Any): String = {
+  value match {
+    case string: String => {
+      string match {
+        case "--" => "NULL"
+        case _ => s"'$string'"
+      }
+    }
+    case decimal: BigDecimal => s"$decimal"
+    case _ => "NULL"
+  }
+}
+
 def holdingsSQL(sheet: Sheet, etf: String): String = {
   val xlsxDate = new SimpleDateFormat("dd-MMM-yyyy")
   val sqlDate = new SimpleDateFormat("yyyy-MM-dd")
   val reportDate = sqlDate.format(xlsxDate.parse(sheet.getRow(0).getCell(0).getStringCellValue()))
   val etfSQL = s"\nUPDATE etfs SET report_date = '$reportDate' WHERE id = '$etf';"
-
   val assets = new StringBuilder
   val holdings = new StringBuilder
 
@@ -157,12 +169,12 @@ def holdingsSQL(sheet: Sheet, etf: String): String = {
       case _ => null
     }
 
-    assets.append(s"\n  ('$id', '$name', '$sector', '$assetClass', '$location', '$exchange'),")
-    holdings.append(s"\n  ('$etf', '$id', $marketValue, $weight, $notionalValue, $shares),")
+    assets.append(s"\n  ('$id', ${sqlnull(name)}, ${sqlnull(sector)}, ${sqlnull(assetClass)}, ${sqlnull(location)}, ${sqlnull(exchange)}),")
+    holdings.append(s"\n  ('$etf', '$id', ${sqlnull(marketValue)}, ${sqlnull(weight)}, ${sqlnull(notionalValue)}, ${sqlnull(shares)}),")
   }
 
   assets.update(assets.length - 1, ';')
-  holdings.update(holdings.length - 1, ';');
+  holdings.update(holdings.length - 1, ';')
 
   val assetsSQL = s"\nINSERT INTO assets (id, name, sector, asset_class, location, exchange)\nVALUES${assets.toString()}"
   val holdingsSQL = s"\nINSERT INTO holdings (etf_id, asset_id, market_value, weight, notional_value, shares)\nVALUES${holdings.toString()}"
@@ -196,7 +208,7 @@ def historicalSQL(sheet: Sheet, etf: String): String = {
       case _ => null
     }
 
-    s"\n  ('$etf', '$date', $navPerShare, $shares)"
+    s"\n  ('$etf', '$date', ${sqlnull(navPerShare)}, ${sqlnull(shares)})"
   }
 
   s"\nINSERT INTO quotes (etf_id, date, nav_per_share, shares)\nVALUES${data.mkString(",")};"
@@ -234,7 +246,7 @@ def distributionsSQL(sheet: Sheet, etf: String): String = {
       case _ => null
     }
 
-    s"\n  ('$etf', '$recordDate', '$exDate', '$payableDate', $value)"
+    s"\n  ('$etf', '$recordDate', ${sqlnull(exDate)}, ${sqlnull(payableDate)}, $value)"
   }
 
   s"\nINSERT INTO dividends (etf_id, record_date, ex_date, payable_date, value)\nVALUES${data.mkString(",")};"
@@ -247,7 +259,7 @@ def sql(file: File): Unit = {
   val workbook = WorkbookFactory.create(file)
   val etf = workbook.getSheet("Performance").getRow(0).getCell(0).getStringCellValue()
 
-  sqlout(path, s"INSERT INTO etfs (id, issuer, name)\nVALUES\n  ('ETF', '$etf', 'BlackRock, Inc.');")
+  sqlout(path, s"INSERT INTO etfs (id, issuer, name)\nVALUES\n  ('ETF', '${sqlnull(etf)}', 'BlackRock, Inc.');")
 
   for (index <- 0 until workbook.getNumberOfSheets) {
     val sheet = workbook.getSheetAt(index)
