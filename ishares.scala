@@ -1,6 +1,5 @@
 import java.io.File
 import java.io.FileWriter
-import java.sql.Date
 import java.text.SimpleDateFormat
 import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.ss.usermodel.WorkbookFactory
@@ -140,15 +139,18 @@ def sql(file: File): Unit = {
 
   val path = s"${file.getName.stripSuffix(".xlsx")}.sql"
   val workbook = WorkbookFactory.create(file)
+  val etf = workbook.getSheet("Performance").getRow(0).getCell(0).getStringCellValue()
+
+  sqlout(path, s"INSERT INTO etfs (id, issuer, name)\nVALUES\n  ('ETF', '$etf', 'BlackRock, Inc.');")
 
   for (index <- 0 until workbook.getNumberOfSheets) {
     val sheet = workbook.getSheetAt(index)
 
     val sql = sheet.getSheetName match {
-      case "Holdings" => holdingsSQL(sheet)
-      case "Historical" => historicalSQL(sheet, "ETF")
-      case "Distributions" => distributionsSQL(sheet, "ETF")
-      case _ => s"TODO"
+      // case "Holdings" => holdingsSQL(sheet)
+      // case "Historical" => historicalSQL(sheet, "ETF")
+      // case "Distributions" => distributionsSQL(sheet, "ETF")
+      case _ => ""
     }
 
     sqlout(path, sql)
@@ -163,11 +165,12 @@ def sqlout(path: String, statement: String): Unit = {
 
   if (!directory.exists) directory.mkdirs()
   if (!file.exists) file.createNewFile()
+  if (statement.isEmpty) return
 
   val writer = new FileWriter(file, true)
 
   try {
-    writer.write(statement)
+    writer.write(s"$statement\n")
   } finally {
     writer.close()
   }
