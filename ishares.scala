@@ -82,9 +82,11 @@ def column(sheet: Sheet, head: Int, name: String): Option[Int] = {
   None
 }
 
-def holdingsSQL(sheet: Sheet): String = {
-  // val xlsxDate = new SimpleDateFormat("dd-MMM-yyyy")
-  // val sqlDate = new SimpleDateFormat("yyyy-MM-dd")
+def holdingsSQL(sheet: Sheet, etf: String): String = {
+  val xlsxDate = new SimpleDateFormat("dd-MMM-yyyy")
+  val sqlDate = new SimpleDateFormat("yyyy-MM-dd")
+  val reportDate = sqlDate.format(xlsxDate.parse(sheet.getRow(0).getCell(0).getStringCellValue()))
+  val etfSQL = s"\nUPDATE etfs SET report_date = '$reportDate' WHERE id = '$etf';"
 
   val assets = new StringBuilder
   val holdings = new StringBuilder
@@ -156,7 +158,7 @@ def holdingsSQL(sheet: Sheet): String = {
     }
 
     assets.append(s"\n  ('$id', '$name', '$sector', '$assetClass', '$location', '$exchange'),")
-    holdings.append(s"\n  ('ETF', '$id', $marketValue, $weight, $notionalValue, $shares),")
+    holdings.append(s"\n  ('$etf', '$id', $marketValue, $weight, $notionalValue, $shares),")
   }
 
   assets.update(assets.length - 1, ';')
@@ -165,7 +167,7 @@ def holdingsSQL(sheet: Sheet): String = {
   val assetsSQL = s"\nINSERT INTO assets (id, name, sector, asset_class, location, exchange)\nVALUES${assets.toString()}"
   val holdingsSQL = s"\nINSERT INTO holdings (etf_id, asset_id, market_value, weight, notional_value, shares)\nVALUES${holdings.toString()}"
 
-  assetsSQL + '\n' + holdingsSQL
+  List(etfSQL, assetsSQL, holdingsSQL).mkString("\n")
 }
 
 def historicalSQL(sheet: Sheet, etf: String): String = {
@@ -251,7 +253,7 @@ def sql(file: File): Unit = {
     val sheet = workbook.getSheetAt(index)
 
     val sql = sheet.getSheetName match {
-      case "Holdings" => holdingsSQL(sheet)
+      case "Holdings" => holdingsSQL(sheet, "ETF")
       case "Historical" => historicalSQL(sheet, "ETF")
       case "Distributions" => distributionsSQL(sheet, "ETF")
       case _ => ""
