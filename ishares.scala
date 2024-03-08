@@ -10,14 +10,14 @@ DROP USER IF EXISTS device;
 DROP DATABASE IF EXISTS ishares;
 CREATE DATABASE ishares;
 
-CREATE TABLE etfs (
+CREATE TABLE ishares.etfs (
   id VARCHAR(10) PRIMARY KEY,
   issuer VARCHAR(255),
   name VARCHAR(255),
   report_date DATE
 );
 
-CREATE TABLE assets (
+CREATE TABLE ishares.assets (
   id VARCHAR(10) PRIMARY KEY,
   name VARCHAR(255),
   sector VARCHAR(255),
@@ -26,7 +26,7 @@ CREATE TABLE assets (
   exchange VARCHAR(255)
 );
 
-CREATE TABLE quotes (
+CREATE TABLE ishares.quotes (
   etf_id VARCHAR(10) NOT NULL,
   date DATE NOT NULL,
   nav_per_share DECIMAL(18, 2),
@@ -35,7 +35,7 @@ CREATE TABLE quotes (
   FOREIGN KEY (etf_id) REFERENCES etfs(id)
 );
 
-CREATE TABLE holdings (
+CREATE TABLE ishares.holdings (
   etf_id VARCHAR(10) NOT NULL,
   asset_id VARCHAR(10) NOT NULL,
   market_value DECIMAL(18, 2),
@@ -47,7 +47,7 @@ CREATE TABLE holdings (
   FOREIGN KEY (asset_id) REFERENCES assets(id)
 );
 
-CREATE TABLE dividends (
+CREATE TABLE ishares.dividends (
   etf_id VARCHAR(10) NOT NULL,
   record_date DATE NOT NULL,
   ex_date DATE,
@@ -176,7 +176,7 @@ def holdingsSQL(sheet: Sheet, etf: String): String = {
   assets.update(assets.length - 1, ';')
   holdings.update(holdings.length - 1, ';')
 
-  val assetsSQL = s"\nINSERT INTO assets (id, name, sector, asset_class, location, exchange)\nVALUES${assets.toString()}"
+  val assetsSQL = s"\nINSERT IGNORE INTO assets (id, name, sector, asset_class, location, exchange)\nVALUES${assets.toString()}"
   val holdingsSQL = s"\nINSERT INTO holdings (etf_id, asset_id, market_value, weight, notional_value, shares)\nVALUES${holdings.toString()}"
 
   List(etfSQL, assetsSQL, holdingsSQL).mkString("\n")
@@ -258,16 +258,17 @@ def sql(file: File): Unit = {
   val path = s"${file.getName.stripSuffix(".xlsx")}.sql"
   val workbook = WorkbookFactory.create(file)
   val etf = workbook.getSheet("Performance").getRow(0).getCell(0).getStringCellValue()
+  val ticker = etf.take(10)
 
-  sqlout(path, s"INSERT INTO etfs (id, issuer, name)\nVALUES\n  ('ETF', '${sqlnull(etf)}', 'BlackRock, Inc.');")
+  sqlout(path, s"INSERT INTO etfs (id, issuer, name)\nVALUES\n  ('$ticker', ${sqlnull(etf)}, 'BlackRock, Inc.');")
 
   for (index <- 0 until workbook.getNumberOfSheets) {
     val sheet = workbook.getSheetAt(index)
 
     val sql = sheet.getSheetName match {
-      case "Holdings" => holdingsSQL(sheet, "ETF")
-      case "Historical" => historicalSQL(sheet, "ETF")
-      case "Distributions" => distributionsSQL(sheet, "ETF")
+      case "Holdings" => holdingsSQL(sheet, ticker)
+      case "Historical" => historicalSQL(sheet, ticker)
+      case "Distributions" => distributionsSQL(sheet, ticker)
       case _ => ""
     }
 

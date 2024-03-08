@@ -8,7 +8,11 @@ require: [
 scripts: {
   run: {
     info: 'run ishares script',
-    run: 'rm -rf sql && sbt run'
+    run: [
+      'rm -rf sql && sbt run',
+      'mysql -u root -p < ./sql/schema.sql',
+      'find ./sql -type f -name "*.sql" ! -name "schema.sql" -exec cat {} + | mysql -u root -p ishares'
+    ]
   },
   clean: {
     info: 'delete untracked files',
