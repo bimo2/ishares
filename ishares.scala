@@ -21,7 +21,7 @@ CREATE TABLE assets (
   id VARCHAR(10) PRIMARY KEY,
   name VARCHAR(255),
   sector VARCHAR(255),
-  class VARCHAR(255),
+  asset_class VARCHAR(255),
   location VARCHAR(255),
   exchange VARCHAR(255)
 );
@@ -62,76 +62,180 @@ GRANT ALL PRIVILEGES ON ishares.* TO 'device'@'%';
 FLUSH PRIVILEGES;
 """.stripMargin.trim
 
+def column(sheet: Sheet, head: Int, name: String): Option[Int] = {
+  val header = sheet.getRow(head)
+
+  if (header != null) {
+    val iterator = header.cellIterator()
+    var index = 0
+
+    while (iterator.hasNext) {
+      val cell = iterator.next()
+      val string = cell.getStringCellValue()
+
+      if (string == name) return Some(index)
+
+      index += 1
+    }
+  }
+
+  None
+}
+
 def holdingsSQL(sheet: Sheet): String = {
-  val xlsxDate = new SimpleDateFormat("dd-MMM-yyyy")
-  val sqlDate = new SimpleDateFormat("yyyy-MM-dd")
-  val date = sqlDate.format(xlsxDate.parse(sheet.getRow(0).getCell(0).getStringCellValue()))
-  val etfName = sheet.getRow(1).getCell(0).getStringCellValue()
+  // val xlsxDate = new SimpleDateFormat("dd-MMM-yyyy")
+  // val sqlDate = new SimpleDateFormat("yyyy-MM-dd")
 
-  // TODO: return ETF data
-  println(s"$etfName ($date)")
-
-  val etfSQL = s"INSERT INTO etfs (id, issuer, name, report_date)\nVALUES\n  ('ETF', 'BlackRock, Inc.', '$etfName', '$date');"
   val assets = new StringBuilder
   val holdings = new StringBuilder
 
+  val indices = Map(
+    "id" -> column(sheet, 7, "Ticker"),
+    "name" -> column(sheet, 7, "Name"),
+    "sector" -> column(sheet, 7, "Sector"),
+    "asset_class" -> column(sheet, 7, "Asset Class"),
+    "market_value" -> column(sheet, 7, "Market Value"),
+    "weight" -> column(sheet, 7, "Weight (%)"),
+    "notional_value" -> column(sheet, 7, "Notional Value"),
+    "shares" -> column(sheet, 7, "Shares"),
+    "location" -> column(sheet, 7, "Location"),
+    "exchange" -> column(sheet, 7, "Exchange")
+  )
+
   for (index <- 8 to sheet.getLastRowNum) {
     val row = sheet.getRow(index)
-    val ticker = row.getCell(0).getStringCellValue()
-    val name = row.getCell(1).getStringCellValue()
-    val sector = row.getCell(2).getStringCellValue()
-    val assetClass = row.getCell(3).getStringCellValue()
-    val marketValue = BigDecimal(row.getCell(4).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
-    val weight = BigDecimal(row.getCell(5).getNumericCellValue()).setScale(4, BigDecimal.RoundingMode.HALF_UP)
-    val notionalValue = BigDecimal(row.getCell(6).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
-    val shares = BigDecimal(row.getCell(7).getNumericCellValue()).setScale(4, BigDecimal.RoundingMode.HALF_UP)
-    val location = row.getCell(9).getStringCellValue()
-    val exchange = row.getCell(10).getStringCellValue()
 
-    assets.append(s"\n  ('$ticker', '$name', '$sector', '$assetClass', '$location', '$exchange'),")
-    holdings.append(s"\n  ('ETF', '$ticker', $marketValue, $weight, $notionalValue, $shares),")
+    val id = indices("id") match {
+      case Some(index) => row.getCell(index).getStringCellValue()
+      case _ => null
+    }
+
+    val name = indices("name") match {
+      case Some(index) => row.getCell(index).getStringCellValue()
+      case _ => null
+    }
+
+    val sector = indices("sector") match {
+      case Some(index) => row.getCell(index).getStringCellValue()
+      case _ => null
+    }
+
+    val assetClass = indices("asset_class") match {
+      case Some(index) => row.getCell(index).getStringCellValue()
+      case _ => null
+    }
+
+    val marketValue = indices("market_value") match {
+      case Some(index) => BigDecimal(row.getCell(index).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+      case _ => null
+    }
+
+    val weight = indices("weight") match {
+      case Some(index) => BigDecimal(row.getCell(index).getNumericCellValue()).setScale(4, BigDecimal.RoundingMode.HALF_UP)
+      case _ => null
+    }
+
+    val notionalValue = indices("notional_value") match {
+      case Some(index) => BigDecimal(row.getCell(index).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+      case _ => null
+    }
+
+    val shares = indices("shares") match {
+      case Some(index) => BigDecimal(row.getCell(index).getNumericCellValue()).setScale(4, BigDecimal.RoundingMode.HALF_UP)
+      case _ => null
+    }
+
+    val location = indices("location") match {
+      case Some(index) => row.getCell(index).getStringCellValue()
+      case _ => null
+    }
+
+    val exchange = indices("exchange") match {
+      case Some(index) => row.getCell(index).getStringCellValue()
+      case _ => null
+    }
+
+    assets.append(s"\n  ('$id', '$name', '$sector', '$assetClass', '$location', '$exchange'),")
+    holdings.append(s"\n  ('ETF', '$id', $marketValue, $weight, $notionalValue, $shares),")
   }
 
   assets.update(assets.length - 1, ';')
   holdings.update(holdings.length - 1, ';');
 
-  val assetsSQL = s"\n\nINSERT INTO assets (id, name, sector, class, location, exchange)\nVALUES${assets.toString()}"
-  val holdingsSQL = s"\n\nINSERT INTO holdings (etf_id, asset_id, market_value, weight, notional_value, shares)\nVALUES${holdings.toString()}"
+  val assetsSQL = s"\nINSERT INTO assets (id, name, sector, asset_class, location, exchange)\nVALUES${assets.toString()}"
+  val holdingsSQL = s"\nINSERT INTO holdings (etf_id, asset_id, market_value, weight, notional_value, shares)\nVALUES${holdings.toString()}"
 
-  etfSQL + assetsSQL + holdingsSQL
+  assetsSQL + '\n' + holdingsSQL
 }
 
 def historicalSQL(sheet: Sheet, etf: String): String = {
   val xlsxDate = new SimpleDateFormat("MMM dd, yyyy")
   val sqlDate = new SimpleDateFormat("yyyy-MM-dd")
-  val rows = sheet.iterator().asScala.drop(1)
 
-  val data = rows.map { row =>
-    val date = sqlDate.format(xlsxDate.parse(row.getCell(0).getStringCellValue()))
-    val value = BigDecimal(row.getCell(1).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
-    val shares = BigDecimal(row.getCell(3).getNumericCellValue()).setScale(4, BigDecimal.RoundingMode.HALF_UP)
+  val indices = Map(
+    "date" -> Some(0),
+    "nav_per_share" -> column(sheet, 0, "NAV per Share"),
+    "shares" -> column(sheet, 0, "Shares Outstanding")
+  )
 
-    s"\n  ('$etf', '$date', $value, $shares)"
+  val data = sheet.iterator().asScala.drop(1).map { row =>
+    val date = indices("date") match {
+      case Some(index) => sqlDate.format(xlsxDate.parse(row.getCell(index).getStringCellValue()))
+      case _ => null
+    }
+
+    val navPerShare = indices("nav_per_share") match {
+      case Some(index) => BigDecimal(row.getCell(index).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+      case _ => null
+    }
+
+    val shares = indices("shares") match {
+      case Some(index) => BigDecimal(row.getCell(index).getNumericCellValue()).setScale(4, BigDecimal.RoundingMode.HALF_UP)
+      case _ => null
+    }
+
+    s"\n  ('$etf', '$date', $navPerShare, $shares)"
   }
 
-  s"INSERT INTO quotes (etf_id, date, nav_per_share, shares)\nVALUES${data.mkString(",")};"
+  s"\nINSERT INTO quotes (etf_id, date, nav_per_share, shares)\nVALUES${data.mkString(",")};"
 }
 
 def distributionsSQL(sheet: Sheet, etf: String): String = {
   val xlsxDate = new SimpleDateFormat("MMM dd, yyyy")
   val sqlDate = new SimpleDateFormat("yyyy-MM-dd")
-  val rows = sheet.iterator().asScala.drop(1)
 
-  val data = rows.map { row =>
-    val recordDate = sqlDate.format(xlsxDate.parse(row.getCell(0).getStringCellValue()))
-    val exDate = sqlDate.format(xlsxDate.parse(row.getCell(1).getStringCellValue()))
-    val payableDate = sqlDate.format(xlsxDate.parse(row.getCell(2).getStringCellValue()))
-    val value = BigDecimal(row.getCell(3).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+  val indices = Map(
+    "record_date" -> column(sheet, 0, "Record Date"),
+    "ex_date" -> column(sheet, 0, "Ex-Date"),
+    "payable_date" -> column(sheet, 0, "Payable Date"),
+    "value" -> column(sheet, 0, "Total Distribution")
+  )
+
+  val data = sheet.iterator().asScala.drop(1).map { row =>
+    val recordDate = indices("record_date") match {
+      case Some(index) => sqlDate.format(xlsxDate.parse(row.getCell(index).getStringCellValue()))
+      case _ => null
+    }
+
+    val exDate = indices("ex_date") match {
+      case Some(index) => sqlDate.format(xlsxDate.parse(row.getCell(index).getStringCellValue()))
+      case _ => null
+    }
+
+    val payableDate = indices("payable_date") match {
+      case Some(index) => sqlDate.format(xlsxDate.parse(row.getCell(index).getStringCellValue()))
+      case _ => null
+    }
+
+    val value = indices("value") match {
+      case Some(index) => BigDecimal(row.getCell(index).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+      case _ => null
+    }
 
     s"\n  ('$etf', '$recordDate', '$exDate', '$payableDate', $value)"
   }
 
-  s"INSERT INTO dividends (etf_id, record_date, ex_date, payable_date, value)\nVALUES${data.mkString(",")};"
+  s"\nINSERT INTO dividends (etf_id, record_date, ex_date, payable_date, value)\nVALUES${data.mkString(",")};"
 }
 
 def sql(file: File): Unit = {
@@ -147,9 +251,9 @@ def sql(file: File): Unit = {
     val sheet = workbook.getSheetAt(index)
 
     val sql = sheet.getSheetName match {
-      // case "Holdings" => holdingsSQL(sheet)
-      // case "Historical" => historicalSQL(sheet, "ETF")
-      // case "Distributions" => distributionsSQL(sheet, "ETF")
+      case "Holdings" => holdingsSQL(sheet)
+      case "Historical" => historicalSQL(sheet, "ETF")
+      case "Distributions" => distributionsSQL(sheet, "ETF")
       case _ => ""
     }
 
