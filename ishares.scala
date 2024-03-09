@@ -5,6 +5,41 @@ import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import scala.jdk.CollectionConverters._
 
+val iSharesETFs = Map(
+  // https://www.ishares.com/us/products/333011/ishares-bitcoin-trust
+  "iShares Bitcoin Trust" -> "IBIT",
+  // https://www.ishares.com/us/products/326614/ishares-blockchain-and-tech-etf
+  "iShares Blockchain and Tech ETF" -> "IBLC",
+  // https://www.ishares.com/us/products/239726/ishares-core-sp-500-etf
+  "iShares Core S&P 500 ETF" -> "IVV",
+  // https://www.ishares.com/us/products/239737/ishares-global-100-etf
+  "iShares Global 100 ETF" -> "IOO",
+  // https://www.ishares.com/us/products/239742/ishares-global-financials-etf
+  "iShares Global Financials ETF" -> "IXG",
+  // https://www.ishares.com/us/products/239750/ishares-global-tech-etf
+  "iShares Global Tech ETF" -> "IXN",
+  // https://www.ishares.com/us/products/239561/ishares-gold-trust-fund
+  "iShares Gold Trust" -> "IAU",
+  // https://www.ishares.com/us/products/239725/ishares-sp-500-growth-etf
+  "iShares S&P 500 Growth ETF" -> "IVW",
+  // https://www.ishares.com/us/products/239728/ishares-sp-500-value-etf
+  "iShares S&P 500 Value ETF" -> "IVE",
+  // https://www.ishares.com/us/products/239705/ishares-phlx-semiconductor-etf
+  "iShares Semiconductor ETF" -> "SOXX",
+  // https://www.ishares.com/us/products/292414/ishares-u-s-consumer-focused-etf
+  "iShares U.S. Consumer Focused ETF" -> "IEDI",
+  // https://www.ishares.com/us/products/239507/ishares-us-energy-etf
+  "iShares U.S. Energy ETF" -> "IYE",
+  // https://www.ishares.com/us/products/239508/ishares-us-financials-etf
+  "iShares U.S. Financials ETF" -> "IYF",
+  // https://www.ishares.com/us/products/239509/ishares-us-financial-services-etf
+  "iShares U.S. Financial Services ETF" -> "IYG",
+  // https://www.ishares.com/us/products/239511/ishares-us-healthcare-etf
+  "iShares U.S. Healthcare ETF" -> "IYH",
+  // https://www.ishares.com/us/products/239522/ishares-us-technology-etf
+  "iShares U.S. Technology ETF" -> "IYW"
+)
+
 val schemaSQL = """
 DROP USER IF EXISTS device;
 DROP DATABASE IF EXISTS ishares;
@@ -42,7 +77,7 @@ CREATE TABLE ishares.holdings (
   weight FLOAT,
   notional_value DECIMAL(18, 2),
   shares DECIMAL(18, 4),
-  PRIMARY KEY (etf_id, asset_id),
+  INDEX (etf_id, asset_id),
   FOREIGN KEY (etf_id) REFERENCES etfs(id),
   FOREIGN KEY (asset_id) REFERENCES assets(id)
 );
@@ -258,7 +293,7 @@ def sql(file: File): Unit = {
   val path = s"${file.getName.stripSuffix(".xlsx")}.sql"
   val workbook = WorkbookFactory.create(file)
   val etf = workbook.getSheet("Performance").getRow(0).getCell(0).getStringCellValue()
-  val ticker = etf.take(10)
+  val ticker = iSharesETFs(etf)
 
   sqlout(path, s"INSERT INTO etfs (id, issuer, name)\nVALUES\n  ('$ticker', ${sqlnull(etf)}, 'BlackRock, Inc.');")
 
