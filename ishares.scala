@@ -175,22 +175,26 @@ def holdingsSQL(sheet: Sheet, etf: String): String = {
     }
 
     val marketValue = indices("market_value") match {
-      case Some(index) => BigDecimal(row.getCell(index).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+      case Some(index) => try BigDecimal(row.getCell(index).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+        catch case _: Throwable => null
       case _ => null
     }
 
     val weight = indices("weight") match {
-      case Some(index) => BigDecimal(row.getCell(index).getNumericCellValue()).setScale(4, BigDecimal.RoundingMode.HALF_UP)
+      case Some(index) => try BigDecimal(row.getCell(index).getNumericCellValue()).setScale(4, BigDecimal.RoundingMode.HALF_UP)
+        catch case _: Throwable => null
       case _ => null
     }
 
     val notionalValue = indices("notional_value") match {
-      case Some(index) => BigDecimal(row.getCell(index).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+      case Some(index) => try BigDecimal(row.getCell(index).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+        catch case _: Throwable => null
       case _ => null
     }
 
     val shares = indices("shares") match {
-      case Some(index) => BigDecimal(row.getCell(index).getNumericCellValue()).setScale(4, BigDecimal.RoundingMode.HALF_UP)
+      case Some(index) => try BigDecimal(row.getCell(index).getNumericCellValue()).setScale(4, BigDecimal.RoundingMode.HALF_UP)
+        catch case _: Throwable => null
       case _ => null
     }
 
@@ -234,12 +238,14 @@ def historicalSQL(sheet: Sheet, etf: String): String = {
     }
 
     val navPerShare = indices("nav_per_share") match {
-      case Some(index) => BigDecimal(row.getCell(index).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+      case Some(index) => try BigDecimal(row.getCell(index).getNumericCellValue()).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+        catch case _: Throwable => null
       case _ => null
     }
 
     val shares = indices("shares") match {
-      case Some(index) => BigDecimal(row.getCell(index).getNumericCellValue()).setScale(4, BigDecimal.RoundingMode.HALF_UP)
+      case Some(index) => try BigDecimal(row.getCell(index).getNumericCellValue()).setScale(4, BigDecimal.RoundingMode.HALF_UP)
+        catch case _: Throwable => null
       case _ => null
     }
 

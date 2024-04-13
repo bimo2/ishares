@@ -16,6 +16,6 @@ scripts: {
   },
   clean: {
     info: 'delete untracked files',
-    run: 'git clean -dfxi -e .env'
+    run: 'git clean -dfxi -e .env -e xlsx'
   }
 }
