@@ -301,7 +301,7 @@ def sql(file: File): Unit = {
   val etf = workbook.getSheet("Performance").getRow(0).getCell(0).getStringCellValue()
   val ticker = iSharesETFs(etf)
 
-  sqlout(path, s"INSERT INTO etfs (id, issuer, name)\nVALUES\n  ('$ticker', ${sqlnull(etf)}, 'BlackRock, Inc.');")
+  sqlout(path, s"INSERT INTO etfs (id, issuer, name)\nVALUES\n  ('$ticker', 'BlackRock, Inc.', ${sqlnull(etf)});")
 
   for (index <- 0 until workbook.getNumberOfSheets) {
     val sheet = workbook.getSheetAt(index)
