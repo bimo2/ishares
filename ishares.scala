@@ -8,14 +8,22 @@ import scala.jdk.CollectionConverters._
 val iSharesETFs = Map(
   // https://www.ishares.com/us/products/333011/ishares-bitcoin-trust
   "iShares Bitcoin Trust" -> "IBIT",
-  // https://www.ishares.com/us/products/326614/ishares-blockchain-and-tech-etf
-  "iShares Blockchain and Tech ETF" -> "IBLC",
   // https://www.ishares.com/us/products/239726/ishares-core-sp-500-etf
   "iShares Core S&P 500 ETF" -> "IVV",
+  // https://www.ishares.com/us/products/239513/ishares-dow-jones-us-etf
+  "iShares Dow Jones U.S. ETF" -> "IYY",
   // https://www.ishares.com/us/products/239737/ishares-global-100-etf
   "iShares Global 100 ETF" -> "IOO",
+  // https://www.ishares.com/us/products/239739/ishares-global-consumer-discretionary-etf
+  "iShares Global Consumer Discretionary ETF" -> "RXI",
+  // https://www.ishares.com/us/products/239741/ishares-global-energy-etf
+  "iShares Global Energy ETF" -> "IXC",
   // https://www.ishares.com/us/products/239742/ishares-global-financials-etf
   "iShares Global Financials ETF" -> "IXG",
+    // https://www.ishares.com/us/products/239744/ishares-global-healthcare-etf
+  "iShares Global Healthcare ETF" -> "IXJ",
+  // https://www.ishares.com/us/products/239745/ishares-global-industrials-etf
+  "iShares Global Industrials ETF" -> "EXI",
   // https://www.ishares.com/us/products/239750/ishares-global-tech-etf
   "iShares Global Tech ETF" -> "IXN",
   // https://www.ishares.com/us/products/239561/ishares-gold-trust-fund
@@ -24,18 +32,16 @@ val iSharesETFs = Map(
   "iShares S&P 500 Growth ETF" -> "IVW",
   // https://www.ishares.com/us/products/239728/ishares-sp-500-value-etf
   "iShares S&P 500 Value ETF" -> "IVE",
-  // https://www.ishares.com/us/products/239705/ishares-phlx-semiconductor-etf
-  "iShares Semiconductor ETF" -> "SOXX",
-  // https://www.ishares.com/us/products/292414/ishares-u-s-consumer-focused-etf
-  "iShares U.S. Consumer Focused ETF" -> "IEDI",
+  // https://www.ishares.com/us/products/239506/ishares-us-consumer-discretionary-etf
+  "iShares U.S. Consumer Discretionary ETF" -> "IYC",
   // https://www.ishares.com/us/products/239507/ishares-us-energy-etf
   "iShares U.S. Energy ETF" -> "IYE",
   // https://www.ishares.com/us/products/239508/ishares-us-financials-etf
   "iShares U.S. Financials ETF" -> "IYF",
-  // https://www.ishares.com/us/products/239509/ishares-us-financial-services-etf
-  "iShares U.S. Financial Services ETF" -> "IYG",
   // https://www.ishares.com/us/products/239511/ishares-us-healthcare-etf
   "iShares U.S. Healthcare ETF" -> "IYH",
+  // https://www.ishares.com/us/products/239514/ishares-us-industrials-etf
+  "iShares U.S. Industrials ETF" -> "IYJ",
   // https://www.ishares.com/us/products/239522/ishares-us-technology-etf
   "iShares U.S. Technology ETF" -> "IYW"
 )
